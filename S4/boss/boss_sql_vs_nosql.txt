@@ -1,0 +1,75 @@
+BOSS FIGHT: SQL vs NoSQL Decision
+======================================================================
+SCENARIO 1: High-Velocity Social Media Feed
+DECISION: NoSQL (e.g. MongoDB, Cassandra, or DynamoDB)
+======================================================================
+
+A social media feed demands extreme read/write throughput, flexible content
+structures, and global horizontal scalability — all areas where NoSQL excels.
+
+REASON 1 — Horizontal Scalability:
+  Social platforms can have hundreds of millions of concurrent users. NoSQL
+  databases are architected to scale OUT across commodity nodes (horizontal
+  scaling), not just UP to a bigger server (vertical scaling). SQL databases
+  can scale vertically but hit hardware ceilings quickly and struggle to
+  shard write-heavy workloads without significant complexity.
+
+REASON 2 — Schema Flexibility:
+  Feed items are heterogeneous: a post might contain text, images, polls,
+  stories, reels, or live video — each with different metadata fields.
+  NoSQL's schema-free document model stores each item as a self-describing
+  JSON document, so new content types can be added without ALTER TABLE
+  migrations that lock tables and cause downtime.
+
+REASON 3 — Write Throughput & Eventual Consistency:
+  Feeds are write-heavy (likes, comments, shares happening millions of times
+  per second). NoSQL systems like Cassandra are optimized for high-speed
+  writes with tunable consistency. For a social feed, "eventual consistency"
+  is acceptable — a like counter being off by 1 for 50ms is invisible to
+  users. Enforcing strict ACID on every interaction would become a
+  bottleneck at this scale.
+
+REASON 4 — Denormalization for Read Speed:
+  Feed queries ("give me the last 20 posts from people I follow") need to be
+  extremely fast. NoSQL encourages storing pre-aggregated, denormalized data
+  per user timeline, eliminating expensive multi-table JOINs that SQL would
+  require at every page load.
+
+
+======================================================================
+SCENARIO 2: Secure Bank Ledger
+DECISION: SQL (e.g. PostgreSQL or MySQL)
+======================================================================
+
+A banking ledger handles real money. Correctness, consistency, and
+auditability are non-negotiable — the exact strengths of relational databases.
+
+REASON 1 — ACID Transactions:
+  Every debit and credit must be atomic: either both sides of a transfer
+  commit together or neither does. SQL databases provide full ACID guarantees
+  (Atomicity, Consistency, Isolation, Durability) at the transaction level.
+  NoSQL databases either lack multi-document transactions entirely or bolt
+  them on with significant trade-offs. A bank cannot tolerate a scenario
+  where money leaves one account but fails to arrive in another.
+
+REASON 2 — Strong Consistency:
+  Financial data must be immediately consistent across all reads. If Account A
+  sends $500 to Account B, the next query must reflect the correct balances —
+  no grace period, no eventual consistency. SQL's strict consistency model
+  ensures every read sees the latest committed state, which is a regulatory
+  and business requirement in finance.
+
+REASON 3 — Relational Integrity & Auditing:
+  A ledger has tightly related entities: accounts, customers, transactions,
+  branches. Foreign key constraints, NOT NULL rules, and CHECK constraints
+  enforce data integrity at the database level — not just in application code.
+  This is critical for audits and regulatory compliance (e.g. SOX, PCI-DSS).
+  SQL also supports complex JOIN-based audit queries ("show all transactions
+  over $10,000 for this customer in Q3") naturally and efficiently.
+
+REASON 4 — Vertical Scalability is Sufficient:
+  A bank's transaction volume, while significant, is orders of magnitude
+  smaller than a social media feed. A well-tuned SQL server (with read
+  replicas for reporting) handles this comfortably. The trade-off of
+  horizontal scalability complexity is simply not worth sacrificing ACID
+  guarantees for this use case.
